@@ -206,7 +206,7 @@ const defaultStores = [
   ['Ara Centro', 'Ara', 'discount', 'Bogotá', 'Centro'],
   ['D1 Calle 72', 'D1', 'discount', 'Bogotá', 'Barrios Unidos'],
   ['Cañaveral', 'Cañaveral', 'supermarket', 'Bogotá', 'Cañaveral'],
-  ['Cañaveral La Luna', 'Cañaveral', 'supermarket', 'Bogotá', 'La Luna'],
+  ['Cañaveral La Luna', 'Cañaveral', 'supermarket', 'Cali', 'La Luna'],
   ['Éxito Calle 80', 'Éxito', 'supermarket', 'Bogotá', 'Calle 80'],
   ['Jumbo Santa Ana', 'Jumbo', 'supermarket', 'Bogotá', 'Santa Ana'],
   ['Carulla', 'Carulla', 'supermarket', 'Bogotá', 'Zona Rosa'],
