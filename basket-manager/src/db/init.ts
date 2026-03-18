@@ -128,6 +128,38 @@ db.exec(`
   );
 `);
 
+// ==================== RECEIPTS (Full purchase records) ====================
+db.exec(`
+  CREATE TABLE IF NOT EXISTS receipts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    store_id INTEGER NOT NULL REFERENCES stores(id),
+    purchase_date DATE NOT NULL,
+    total REAL NOT NULL,
+    subtotal_gravado REAL,
+    subtotal_exento REAL,
+    subtotal_excluido REAL,
+    discount REAL DEFAULT 0,
+    tax REAL DEFAULT 0,
+    payment_method TEXT,
+    receipt_number TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+`);
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS receipt_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    receipt_id INTEGER NOT NULL REFERENCES receipts(id),
+    product_id INTEGER REFERENCES products(id),
+    product_name TEXT NOT NULL,
+    quantity REAL NOT NULL,
+    unit TEXT,
+    unit_price REAL,
+    total REAL NOT NULL,
+    category TEXT
+  );
+`);
+
 // ==================== INDEXES ====================
 db.exec(`CREATE INDEX IF NOT EXISTS idx_prices_product ON prices(product_id);`);
 db.exec(`CREATE INDEX IF NOT EXISTS idx_prices_store ON prices(store_id);`);
@@ -174,6 +206,7 @@ const defaultStores = [
   ['Ara Centro', 'Ara', 'discount', 'Bogotá', 'Centro'],
   ['D1 Calle 72', 'D1', 'discount', 'Bogotá', 'Barrios Unidos'],
   ['Cañaveral', 'Cañaveral', 'supermarket', 'Bogotá', 'Cañaveral'],
+  ['Cañaveral La Luna', 'Cañaveral', 'supermarket', 'Bogotá', 'La Luna'],
   ['Éxito Calle 80', 'Éxito', 'supermarket', 'Bogotá', 'Calle 80'],
   ['Jumbo Santa Ana', 'Jumbo', 'supermarket', 'Bogotá', 'Santa Ana'],
   ['Carulla', 'Carulla', 'supermarket', 'Bogotá', 'Zona Rosa'],
@@ -181,6 +214,69 @@ const defaultStores = [
 
 for (const store of defaultStores) {
   insertStore.run(...store);
+}
+
+// ==================== SEED PRODUCTS FROM RECEIPT (Cañaveral La Luna - 2026-03-17) ====================
+const insertProduct = db.prepare(`
+  INSERT OR IGNORE INTO products (name, brand, category_id, unit, default_unit_price) VALUES (?, ?, ?, ?, ?)
+`);
+
+const receiptProducts = [
+  // Panadería
+  ['Pan Integral Tres Granos', 'Panadería', 15, 'un', 4000],
+  // Carnes
+  ['Carne Molida Extra', 'Cuatrillo', 6, 'kg', 28000],
+  // Frutas
+  ['Mango Grueso', 'Frutas', 7, 'kg', 9400],
+  ['Banano Común', 'Frutas', 7, 'kg', 3200],
+  ['Uva Verde Importada', 'Frutas', 7, 'kg', 27600],
+  ['Granadilla', 'Frutas', 7, 'kg', 14600],
+  // Lácteos
+  ['Leche Condensada', 'Lechera', 5, 'un', 3350],
+  // Verduras
+  ['Cebolla Cabezona Blanca', 'Verduras', 8, 'kg', 2223],
+  ['Tomate Chonto', 'Verduras', 8, 'kg', 7900],
+  ['Lechuga Romana', 'Verduras', 8, 'un', 4750],
+  // Snacks
+  ['Chocoramo Tajada', 'Snacks', 14, 'un', 3450],
+  // Otros
+  ['Bolsa Ecológica', 'Otros', 15, 'un', 500],
+];
+
+for (const prod of receiptProducts) {
+  insertProduct.run(prod[0], prod[1], prod[2], prod[3], prod[4]);
+}
+
+// ==================== SEED PRICES FROM RECEIPT (Cañaveral La Luna - 2026-03-17) ====================
+const insertPrice = db.prepare(`
+  INSERT OR IGNORE INTO prices (product_id, store_id, price, date) VALUES (?, ?, ?, ?)
+`);
+
+// Get store ID for Cañaveral La Luna
+const caaveralLaLuna = db.prepare("SELECT id FROM stores WHERE name = 'Cañaveral La Luna'").get() as any;
+if (caaveralLaLuna) {
+  const storeId = caaveralLaLuna.id;
+  const receiptDate = '2026-03-17';
+  
+  const receiptPrices = [
+    [1, storeId, 4000],  // Pan Integral
+    [2, storeId, 14700],  // Carne Molida (0.525kg)
+    [3, storeId, 7614],  // Mango (0.810kg)
+    [4, storeId, 4528],  // Banano (1.415kg)
+    [5, storeId, 22356], // Uva (0.810kg)
+    [6, storeId, 4161],  // Granadilla (0.285kg)
+    [7, storeId, 3350], // Leche Condensada
+    [8, storeId, 934],   // Cebolla (0.420kg)
+    [9, storeId, 1422], // Tomate (0.180kg)
+    [10, storeId, 4750], // Lechuga
+    [11, storeId, 3450], // Chocoramo 1
+    [12, storeId, 3450], // Chocoramo 2
+    [13, storeId, 500],  // Bolsa Ecológica
+  ];
+  
+  for (const price of receiptPrices) {
+    insertPrice.run(price[0], price[1], price[2], receiptDate);
+  }
 }
 
 console.log('✅ Basket Manager Database initialized at:', DB_PATH);
